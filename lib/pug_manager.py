@@ -1,6 +1,7 @@
 from pathlib import Path
+from .dev_logger import Dev_Logger
 
-# Add debug prints
+logger = Dev_Logger()
 
 
 def indent(num=1):
@@ -30,7 +31,8 @@ def indentList() -> list:
 class Pug_Manager:
 
     def __init__(self, output_path='output/', filename='main') -> None:
-        print(f'Generating {filename}')
+        logger.info(f'Generating {filename}.pug')
+        # print(f'Generating {filename}')
         self.filename = f'{output_path}/{filename}/index.pug'
         filepath = Path(f'{output_path}/{filename}')
         filepath.mkdir(parents=True, exist_ok=True)
@@ -96,7 +98,7 @@ class Pug_Manager:
         return new_lines
 
     def addTitle(self, title: str):
-        # print('Adding Title')
+        logger.debug('Adding Title')
         lines = [f'title {title}\n',
                  f'meta(name="og:title" content="{title}")\n',
                  f'meta(name="twitter:title" content="{title}")\n']
@@ -107,7 +109,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addDescription(self, description: str):
-        # print('Adding Description')
+        logger.debug('Adding Description')
         lines = [f'meta(name="description" content="{description}")\n',
                  f'meta(name="og:description" content="{description}")\n',
                  f'meta(name="twitter:description" content="{description}")\n']
@@ -118,7 +120,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addImage(self, image: str):
-        # print('Adding Image')
+        logger.debug('Adding Image')
         lines = [f'meta(name="og:image" content="{image}")\n',
                  f'meta(name="twitter:image" content="{image}")\n']
         lines = self.__updateListIndex(lines, 2)
@@ -128,7 +130,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addMeta(self, meta_tags: dict):
-        # print('Adding Meta')
+        logger.debug('Adding Meta')
         lines = []
         for key in meta_tags:
             lines.append(f'meta(name="{key}" content="{meta_tags[key]}")\n')
@@ -139,6 +141,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addIcon(self, logo_filename='logo.png'):
+        logger.debug('Adding Icon')
         lines = [
             f'link(rel="icon" type="image/x-icon" href="{logo_filename}")\n']
         lines = self.__updateListIndex(lines, 2)
@@ -147,7 +150,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addCSS(self, parent: bool = False, css_filename='style.css'):
-        # print('Adding Style Sheet')
+        logger.debug('Adding Style Sheet')
         lines = []
         if parent:
             lines.append(f'link(rel="stylesheet" href="../{css_filename}")\n')
@@ -160,7 +163,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addJavascriptFile(self, parent: bool = False, js_filename='main.js'):
-        # print('Adding Javascript File')
+        logger.debug('Adding Javascript File')
         lines = []
         if parent:
             lines.append(
@@ -176,7 +179,7 @@ class Pug_Manager:
             f.writelines(new_lines)
 
     def addBibleJavascriptFile(self):
-        # print('Adding Javascript File')
+        logger.debug('Adding ESV Bible Javascript File')
         lines = [
             f'script(type="text/javascript" src="https://static.esvmedia.org/crossref/crossref.min.js")\n']
         lines = self.__updateListIndex(lines, 2)
@@ -185,17 +188,23 @@ class Pug_Manager:
         with open(self.filename, 'w') as f:
             f.writelines(new_lines)
 
-    def appendTo(self, text: str, position: str = 'body', indentation: int = 1):
-        self.lines.append(f'{text}\n')
+    def appendLineToHeader(self, line: str, toEnd=True):
+        # Add new line char to line
+        lines = [f'{line}\n']
+        if toEnd:
+            new_lines = self.__findLocationInFile(
+                'body', lines, after=self.elements['body'])
+        else:
+            new_lines = self.__findLocationInFile('body', lines)
 
-    def appendToHeader(self, lines: list):
+    def appendLinesToHeader(self, lines: list):
         lines = self.__updateListIndex(lines, 2)
         new_lines = self.__findLocationInFile('head', lines)
         # Rewrite lines to file
         with open(self.filename, 'w') as f:
             f.writelines(new_lines)
 
-    def appendToBody(self, lines: list):
+    def appendLinesToBody(self, lines: list):
         lines = self.__appendNewLineChar(lines)
         new_lines = self.__findLocationInFile('body', lines)
         # Rewrite lines to file

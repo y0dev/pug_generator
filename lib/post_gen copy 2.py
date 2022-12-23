@@ -342,4 +342,4 @@ class Post_Generator:
         self.__addJavascriptFiles()
 
     def generatePugFile(self):
-        self.pm.appendToBody(self.lines)
+        self.pm.appendLinesToBody(self.lines)

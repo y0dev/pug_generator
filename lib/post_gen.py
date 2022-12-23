@@ -1,4 +1,5 @@
 from .pug_manager import Pug_Manager, indentList
+from .dev_logger import Dev_Logger
 
 
 class Post_Generator:
@@ -8,6 +9,7 @@ class Post_Generator:
         else:
             post_page_filename = json_obj['id']
 
+        self.logger = Dev_Logger()
         self.post_type = post_type
         if self.post_type.lower() == 'article':
             self.pm = Pug_Manager(
@@ -32,8 +34,11 @@ class Post_Generator:
 
     def __getPostDetails(self, json_obj: dict):
         if len(json_obj) == 0:
+            self.logger.enableDebug()
             self.post_time = 'Thursday, October 6, 2022'
             self.post_info = {'date': 'Thursday, October 6, 2022'}
+            self.logger.debug(
+                f'Post Time: {self.post_time}\tPost Info: {self.post_info}')
         else:
             from datetime import datetime
             self.post_info = json_obj
@@ -46,13 +51,15 @@ class Post_Generator:
             self.tags = self.post_info['tags']
             # Convert from js timestamp
             py_timestamp = int(self.post_info['date'])/1000.0
-            # print(py_timestamp)
+            self.logger.debug(
+                f'Javascript Timestamp: {self.post_info["date"]}\tPython Timestamp: {py_timestamp}')
             self.post_info['date'] = datetime.fromtimestamp(
                 py_timestamp).strftime("%A, %B %d, %Y")
 
     # Helper
 
     def __setupInitHead(self):
+        self.logger.debug('Setting up Head')
         meta_links = {'twitter:card': 'summary_large_image', 'twitter:site': '@_yodev_',
                       'og:url': 'https://www.devontaereid.com', 'og:type': 'website'}
         self.pm.addTitle(self.title)
@@ -64,6 +71,7 @@ class Post_Generator:
         self.pm.addCSS()
 
     def __addNavBar(self):
+        self.logger.debug('Setting up Navbar')
         self.lines.append(
             f'{self.id_list[0]}div#nav-bar.navbar.header-content--mini')
         self.lines.append(f'{self.id_list[1]}nav')
@@ -85,12 +93,13 @@ class Post_Generator:
         self.lines.append(f'{self.id_list[5]}button.display-switch ☀️')
 
     def __addPostTags(self):
-
+        self.logger.debug('Setting up Post Tags')
         self.lines.append(f'{self.id_list[3]}div.post-header-tags')
         for tag in self.tags:
             self.lines.append(f'{self.id_list[5]}span.post-header-tag {tag}')
 
     def __addPostContent(self):
+        self.logger.debug('Setting up Post Content')
         self.lines.append(f'{self.id_list[1]}div.post-content')
         for content in self.post_info['content']:
             self.lines.append(f'{self.id_list[2]}div.post-section-container')
@@ -116,11 +125,13 @@ class Post_Generator:
         idx_start = line.index(':path-start')
         idx_end = line.index(':path-end')
         file_path = line[idx_start + l_start: idx_end]
-        print(file_path)
+
+        self.logger.debug(f'File_Path: {file_path}')
         self.lines.append(
             f'{self.id_list[indent_level + 3]}span.code-file-path {file_path}')
 
         code_line = line[idx_end + l_end:]
+        self.logger.debug(f'Handle Path code line: {code_line}')
         if len(code_line) == 0:
             self.lines.append(
                 f'{self.id_list[indent_level + 3]}br')
@@ -141,11 +152,12 @@ class Post_Generator:
             idx_start = line.index(':string-open')
             idx_end = line.index(':string-close')
             string = line[idx_start + l_start:idx_end-1] + "\""
-            print(f'handleString Intro- {string}')
+            self.logger.debug(
+                f'Handle String- string: {string}')
             self.lines.append(
                 f'{self.id_list[indent_level + 3]}span.code-string {string}')
             code_line = line[idx_end + l_end:]
-            print(f'handleString-{code_line}')
+            self.logger.debug(f'Handle String- code line: {code_line}')
         return code_line
 
     def __handlePunc(self, line: str, indent_level=4) -> str:
@@ -159,7 +171,7 @@ class Post_Generator:
             self.lines.append(
                 f'{self.id_list[indent_level + 4]}span.code-punctuation {string}')
             code_line = line[idx_end + l_end:]
-            print(code_line)
+            self.logger.debug(f'Handle Punctuation- code line: {code_line}')
         return code_line
 
     def __handleBrackets(self, line: str, indent_level=4) -> str:
@@ -167,22 +179,25 @@ class Post_Generator:
         l_end = len(':bracket-close ')
         code_line = line
         if code_line[:l_start] == ':bracket-open ':
-            idx_start = line.index(':bracket-open')
-            open_bracket = line[idx_start + l_start]
-            print(open_bracket)
+            idx_start = code_line.index(':bracket-open')
+            open_bracket = code_line[idx_start + l_start]
+            self.logger.debug(
+                f'Handle Bracket- opening bracket: {open_bracket}')
             self.lines.append(
                 f'{self.id_list[indent_level + 3]}span.code-bracket {open_bracket}')
-            code_line = line[idx_start + l_start + 2:]
+            code_line = code_line[idx_start + l_start + 2:]
         elif code_line[:l_end] == ':bracket-close ':
-            idx_end = line.index(':bracket-close')
-            closing_bracket = line[idx_end + l_end]
-            print(closing_bracket)
+            idx_end = code_line.index(':bracket-close')
+            closing_bracket = code_line[idx_end + l_end]
+            self.logger.debug(
+                f'Handle Bracket- closing bracket: {closing_bracket}')
             self.lines.append(
                 f'{self.id_list[indent_level + 3]}span.code-bracket {closing_bracket}')
             code_line = line[idx_end + l_end + 2:]
             if len(code_line) == 0:
                 self.lines.append(f'{self.id_list[indent_level + 3]}br')
-        print(f'Bracket: {code_line}')
+        self.logger.debug(
+            f'Handle Bracket-  bracket: {code_line}')
         return code_line
 
     def __addCodeBlock(self, code_content: dict, indent_level=4):
@@ -213,7 +228,7 @@ class Post_Generator:
                 l_start = len(':comment ')
                 idx_start = line.index(':comment')
                 comment = line[idx_start + l_start:]
-                # print(comment)
+                self.logger.debug(f'Code Block- comment: {comment}')
                 self.lines.append(
                     f'{self.id_list[indent_level + 4]}span.code-comment {comment}')
                 self.lines.append(f'{self.id_list[indent_level + 4]}br')
@@ -230,28 +245,38 @@ class Post_Generator:
                     idx_start = code_line.index(':code-specific')
                     idx_end = code_line.index(':code-specific-end')
                     code_specific = code_line[idx_start + l_start: idx_end]
-                    # print(code_specific)
+                    self.logger.debug(
+                        f'Code Block- code specific: {code_specific}')
 
-                    # print(f'C-Line {code_line}')
+                    self.logger.debug(
+                        f'Code Block- code line: {code_line}')
+
                     self.lines.append(
                         f'{self.id_list[indent_level + 4]}span.code-specific {code_specific}')
                     code_line = code_line[idx_end + l_end:]
                 else:
-                    print(f'E-Line {code_line}')
+                    self.logger.debug(
+                        f'Code Block Else- code line: {code_line}')
                     if code_line[:len(':path-start ')] == ':path-start ':
                         code_line = self.__handlePath(line=code_line,
                                                       indent_level=indent_level+1)
-                        # print(f'P-Line {code_line}')
+                        self.logger.debug(
+                            f'Code Block Else- path code line: {code_line}')
                     elif code_line[:len(':bracket-open ')] == ':bracket-open ' or code_line[:len(':bracket-close ')] == ':bracket-close ':
-                        print(f'B-Line {code_line[:len(": bracket-open ")]}')
+                        self.logger.debug(
+                            f'Code Block Else- bracket code line: {code_line[:len(":bracket-open ")]}')
                         code_line = self.__handleBrackets(
                             line=code_line, indent_level=indent_level+1)
-                    # or code_line[:len(':string-close')] == ':string-close':
                     elif code_line[:len(':string-open ')] == ':string-open ':
-                        print(f'S-Line {code_line[:len(":string-open ")]}')
+                        self.logger.debug(
+                            f'Code Block Else- string code line: {code_line[:len(":string-open ")]}')
                         code_line = self.__handleString(
                             line=code_line, indent_level=indent_level+1)
                     else:
+                        self.logger.info(
+                            f'Code Block Else- Getting Rest of Line')
+                        self.logger.debug(
+                            f'Code Block Else- code line: {code_line}')
                         # Maybe is some text
                         min_idx = 10000
                         name = ''
@@ -278,10 +303,10 @@ class Post_Generator:
                         length = len(name)
 
                         if length > 0:
-                            print(
-                                f'El2-Line {code_line[:min_idx]}')
-                            print(
-                                f'El2-Line {code_line[min_idx:]}')
+                            self.logger.debug(
+                                f'Code Block Else- min idx: {min_idx}')
+                            self.logger.debug(
+                                f'Code Block Else- code line: {code_line[min_idx:]}')
                             if min_idx > 1:
                                 self.lines.append(
                                     f'{self.id_list[indent_level + 4]}.')
@@ -290,11 +315,9 @@ class Post_Generator:
 
                             code_line = code_line[min_idx:]
 
-                            print(min_idx)
-                            print(f'End-Line{code_line}')
-
             if len(code_line) != 0:
-                print(f'Exit Line {code_line}')
+                self.logger.debug(
+                    f'Code Block Exit- code line: {code_line}')
                 self.lines.append(f'{self.id_list[indent_level + 4]}.')
                 self.lines.append(
                     f'{self.id_list[indent_level + 5]}{code_line}')
@@ -302,14 +325,16 @@ class Post_Generator:
                     f'{self.id_list[indent_level + 4]}br')
 
     def __addContentParagraph(self, content: dict, paragraph: str):
-        # print(paragraph)
+        self.logger.info(f'Content Paragraph')
+        self.logger.debug(
+            f'Content Paragraph- paragraph: {paragraph}')
         # Check for image in paragraph
         if ':imagePlace' in paragraph:
             img_id = paragraph[-4:-1]
             # print(l,idx,img_id)
             for image in content['images']:
                 if image['id'] == img_id:
-                    # print(image)
+                    self.logger.debug(f'Content Paragraph- image: {image}')
                     self.lines.append(
                         f'{self.id_list[4]}div.post-image-container')
                     self.lines.append(
@@ -460,4 +485,4 @@ class Post_Generator:
         self.__addJavascriptFiles()
 
     def generatePugFile(self):
-        self.pm.appendToBody(self.lines)
+        self.pm.appendLinesToBody(self.lines)
